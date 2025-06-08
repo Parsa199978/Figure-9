@@ -3,602 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Outcomes and Explanatory Factors</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Outcomes Pie Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles for better visual appeal and compactness */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Light gray background for the page */
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+            padding: 1rem;
+            box-sizing: border-box;
         }
-        .table-container {
-            overflow-x: auto; /* Allows horizontal scrolling for the table if needed */
-            padding-top: 5px; /* Reduced padding */
-            padding-bottom: 5px; /* Reduced padding */
-        }
-        table {
-            border-collapse: collapse; /* Ensures borders are neat */
-            margin: 15px auto; /* Reduced margin, centers the table */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-            border-radius: 6px; /* Slightly rounded corners for the table */
-        }
-        th, td {
-            border: 1px solid #e5e7eb; /* Light gray border for cells */
-            padding: 0; /* Padding will be handled by inner elements or specific cell types */
-            text-align: center; /* Center-aligns text in cells */
-            min-width: 90px;    /* REDUCED: Minimum width for cells */
-            height: 75px;       /* REDUCED: Fixed height for cells */
-            position: relative; /* For positioning tooltips and establishing stacking context for td */
-        }
-        th { /* Column headers */
-            background-color: #4b5563; /* Darker gray background for headers */
-            color: white; /* White text for headers */
-            padding: 8px 6px;   /* REDUCED: Padding for header text */
-            font-weight: 600; /* Semi-bold font for headers */
-            font-size: 0.7rem; /* REDUCED: Font size for headers */
-            white-space: normal; /* Allows text wrapping in headers */
-            position: sticky; /* Makes headers stick during scroll */
-            top: 0; /* Sticks to the top */
-            z-index: 20; /* Ensures headers are above cell content but can be overridden on hover */
-        }
-        td {
-            background-color: #ffffff; /* White background for data cells */
-        }
-        .row-header { /* Row headers */
-            background-color: #6b7280; /* Medium gray background for row headers */
-            color: white; /* White text for row headers */
-            font-weight: 500; /* Medium font weight */
-            padding: 8px 6px;   /* REDUCED: Padding for row header text */
-            text-align: left; /* Left-aligns text in row headers */
-            font-size: 0.7rem; /* REDUCED: Font size for row headers */
-            white-space: normal; /* Allows text wrapping */
-            min-width: 150px;   /* REDUCED: Wider row headers to accommodate text */
-            position: sticky; /* Makes row headers stick during horizontal scroll */
-            left: 0; /* Sticks to the left */
-            z-index: 15; /* Ensures row headers are above other content but can be overridden on hover */
-        }
-        .circle-cell { /* Container for circles in data cells */
-            display: flex; /* Enables flexbox for centering */
-            align-items: center; /* Vertically centers content */
-            justify-content: center; /* Horizontally centers content */
+        .chart-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
             width: 100%;
-            height: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            margin-bottom: 2rem;
+            color: #1a202c;
+            font-size: 1.5rem;
         }
         .tooltip {
-            visibility: hidden; /* Hidden by default */
-            background-color: #1f2937; /* Dark background for tooltip */
-            color: #fff; /* White text for tooltip */
-            text-align: left; /* Left-aligns text in tooltip */
-            border-radius: 4px; /* Reduced radius */
-            padding: 6px 10px;  /* REDUCED: Padding for tooltip */
-            position: absolute; /* Positions tooltip relative to its closest positioned ancestor */
-            z-index: 30; /* Ensures tooltip is above its parent's content */
-            top: 105%; /* Positions tooltip slightly below the cell/header */
-            left: 50%;
-            transform: translateX(-50%); /* Centers the tooltip horizontally */
-            opacity: 0; /* Hidden by default */
-            transition: opacity 0.2s, visibility 0.2s; /* Smooth transition for visibility */
-            font-size: 0.75rem; /* REDUCED: Font size for tooltip */
-            white-space: normal; /* Allows text wrapping in tooltip */
-            max-width: 240px;    /* REDUCED: Max width for the tooltip */
-            word-wrap: break-word; /* Breaks long words to prevent overflow */
-            line-height: 1.3;    /* REDUCED: Line height */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Subtle shadow for tooltip */
-            pointer-events: none; /* Tooltip doesn't interfere with mouse events */
+            position: absolute;
+            text-align: left;
+            width: auto;
+            padding: 0.75rem;
+            font: 14px 'Inter', sans-serif;
+            background: #2d3748;
+            color: white;
+            border: 0;
+            border-radius: 0.5rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            max-width: 300px;
+            word-wrap: break-word;
+            z-index: 10;
         }
         .tooltip strong {
-            display: block; /* Makes the study count bold and on its own line */
-            margin-bottom: 3px; /* Reduced margin */
-        }
-
-        .circle-cell:hover .tooltip,
-        th:hover > .tooltip { 
-            visibility: visible; 
-            opacity: 1; 
-        }
-
-        thead tr th:first-child { 
-            z-index: 25; 
-            left: 0; 
-            background-color: #4b5563; 
-        }
-
-        th:hover {
-            z-index: 28; 
-        }
-
-        @media (max-width: 768px) {
-            th, td { min-width: 70px; height: 60px; }
-            th, .row-header { font-size: 0.65rem; padding: 6px 4px; }
-            .row-header { min-width: 120px; }
-            .tooltip { font-size: 0.7rem; max-width: 180px; }
-            .legend-text { font-size: 0.7rem; }
-            .legend-icon { width: 20px; height: 20px; }
-            h1.main-title { font-size: 1.25rem; }
-        }
-        @media (max-width: 480px) { 
-            th, td { min-width: 50px; height: 50px; }
-            th, .row-header { font-size: 0.6rem; }
-            .row-header { min-width: 100px; }
-            .tooltip { font-size: 0.65rem; max-width: 150px; }
-            h1.main-title { font-size: 1.125rem; }
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #90cdf4;
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-100 p-2 md:p-4">
-    <div class="container mx-auto">
-        <h1 class="main-title text-xl md:text-2xl font-bold text-center text-gray-700 mb-4">Study Outcomes and Their Explanatory Factors</h1>
+<body>
 
-        <div id="evidenceMapContainer" class="table-container">
-            </div>
+<div class="chart-container">
+    <h1>Distribution of Outcomes</h1>
+    <div id="chart"></div>
+</div>
 
-        <div class="mt-4 p-3 bg-white rounded-lg shadow-md">
-            <h3 class="text-base font-semibold text-gray-700 mb-2">Legend</h3>
-            <div class="flex flex-wrap items-center space-x-3">
-                <div class="flex items-center space-x-1 mb-1 sm:mb-0">
-                    <svg class="legend-icon" width="25" height="25" viewBox="0 0 30 30">
-                        <circle cx="15" cy="15" r="3" fill="#3b82f6" />
-                    </svg>
-                    <span class="legend-text text-xs text-gray-600">Few studies</span>
-                </div>
-                <div class="flex items-center space-x-1 mb-1 sm:mb-0">
-                    <svg class="legend-icon" width="25" height="25" viewBox="0 0 30 30">
-                        <circle cx="15" cy="15" r="7" fill="#3b82f6" />
-                    </svg>
-                    <span class="legend-text text-xs text-gray-600">Some studies</span>
-                </div>
-                <div class="flex items-center space-x-1">
-                    <svg class="legend-icon" width="25" height="25" viewBox="0 0 30 30">
-                        <circle cx="15" cy="15" r="12" fill="#3b82f6" />
-                    </svg>
-                    <span class="legend-text text-xs text-gray-600">Many studies</span>
-                </div>
-            </div>
-             <p class="text-xs text-gray-500 mt-1">Circle size is relative to the maximum number of studies in the dataset.</p>
-        </div>
-    </div>
+<div class="tooltip"></div>
 
-    <script>
-        // --- DATA CONFIGURATION ---
-        const rawDataFromDocx = `,Outcomes\r\n,Dental/Oral Condition: Dental Caries/Tooth Loss,Dental Hospitalisation (diagnoses and treatment),Medical Conditions/Treatments/Presentations: Psychological and Social Health,Medical Conditions/Treatments/Presentations: Cognitive Health,Oral and Pharyngeal Microbiota,Salivary Immunoglobulin,Oral Function (Remaining Teeth Composition/Denture Use/Chewing/Swallowing),Dental/Oral Condition: Periodontal Disease,non-specific oral health,Tooth Size and Shape,"Orthodontic need, treatment and success (including occlusal relations)",Tooth Eruption,Dental/Oral Condition: Dental Trauma,Dental/Oral Condition: Dry Mouth,Dental/Oral Condition: Dental Wear,Dental/Oral Condition: Developmental Dental Defects,Dental/Oral Condition: Temporomandibular joint Disease (TMD),Dental/Oral Condition: Oral Human Papillomavirus (HPV),Dental/Oral Condition: Oral Cancer and Epithelial Dysplasia,"Oral Hygiene, Behaviours and Beliefs",Third Molar Status and Outcome,Medical Conditions/Treatments/Presentations: Heart conditions,Medical Conditions/Treatments/Presentations: Diabetes and Metabolic Disorders,Medical Conditions/Treatments/Presentations: Obesity and Weight Loss,Medical Conditions/Treatments/Presentations: Other,Perception of Personal General Health and Needs ,Substance Use (Including Smoking and Alcohol),Diet and Nutrient Intake,Infant Feeding,Use of Dental Service,Perception of Personal Oral Health and Needs (Including Oral Health Quality of Life) ,Dental Anxiety\r\nExplanatory Factors,Sociodemographic/Economic/Cultural Factors (Including Access and Use of Dental Services),"#1, #2, #3, #5, #7, #8, #9, #10, #11, #12, #13, #15, #17, #18, #19, #20, #21, #27, #28, #29, #30, #32, #36, #2D, #5D","#1D, #2D, #5D, #6D, #8D","#1, #3, #11",,"#2, #13",,"#6, #16","#3, #6, #7, #14, #29",#3,,"#1, #7, #34, #29",#26,#10,,#4,"#4, #7, #17, #18, #25, #29",,#24,#9D,"#6, #7, #9, #10, #15, #30",,"#7, #16, #4D","#7, #16","#6, #10, #15, #21","#7, #30, #31, #9D",#15,#7,#6,#23,"#5, #6, #7, #10, #37","#6, #7, #9, #15, #25, #29, #34",#7\r\n,Anthropometric Measurements,"#3, #10, #18",,,,,,#16,#3,,,,,,,,,,,,,,#16,"#7, #16",#6,"#31, #35",,,#6,,,,\r\n,Substance Use (Including Smoking and Alcohol),"#3, #7, #14, #16, #29",,#3,,,,"#6, #16","#3, #7, #14, #29",,,#29,,,#14,,#29,,#24,"#7D, #9D, #10D",#6,,"#7, #16","#7, #16",#6,"#7, #30, #31, #7D, #9D",#15,,#6,,#6,"#6, #7, #15, #29",\r\n,Physical Activity,,,,,,,#6,,,,,,,,,,,,,,,,,#10,,,,#6,,,,\r\n,"Oral Hygiene, Behaviours and Beliefs","#1, #2, #3, #4, #7, #9, #10, #11, #12, #13, #14, #15, #17, #18, #19, #20, #21, #27, #28, #32, #36, #2D",#2D,"#1, #3, #11",,"#2, #4, #13",,,"#3, #7, #14",#3,,#1,,#10,,,"#4, #7, #17",,#24,,#9,,#7,,#21,"#30, #33",#15,,,,,"#7, #9, #15",\r\n,"Oral and Dental Condition/Treatment: Orthodontic Treatment, Need, and Occlusal Relations","#1, #7, #8",,"#1, #11",,,,,#7,,,"#1, #7, #34",,,,,,#7,,,,#7,,,,,,,,,,"#25, #34",\r\n,Oral and Dental Condition/Treatment: Dental Caries/Extraction/ Restoration,,,"#3, #11",,,,#6,#7,#3,,#1,,,,,#7,,#24,,,,"#16, #4D",#16,#10,"#5, #7, #30, #31",,,,,#7,"#6, #7, #25",#7\r\n,Oral and Dental Condition/Treatment: Developmental Dental Defects,"#13, #18",,,,#3,,,,,#4,,,,,,,,,,,,,,,#35,,,,,,#25,\r\n,Oral and Dental Condition/Treatment: Periodontal Disease,,,#11,,,,#6,,,,#7,,,,,,,#24,,,,#16,"#7, #16",,,,,,,,"#6, #7",\r\n,Oral and Dental Condition/Treatment: Dry Mouth,#14,,,,,,,,,,,,,,,,,,,,,,,#6,#14,,,,,,#7,\r\n,Oral and Dental Condition/Treatment: Dental Trauma,,,#11,,,,,,,,,,,,,#7,,,,,,,,,,,,,,,,\r\n,Oral and Dental Condition/Treatment: Temporomandibular joint Disease (TMD),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#7,\r\n,Oral and Dental Condition/Treatment: Oral Cancer,,,,,,,,,,,,,,,,,,,"#7D, #9D",,,,,,"#7D, #9D",,,,,,, \r\n,Oral and Dental Condition/Treatment: Oral Lichen Planus and Lichenoid Lesions (OLP/OLL),,,,,,,,,,,,,,,,,,,#10D,,,,,,,,,,,,, \r\n,Oral and Dental Condition/Treatment: Other,#12,,#11,,,,,,,,,,,,,,,,,,,,,,,,,,,,, \r\n,Perception of Personal Oral Health and Needs (Including Oral Health Quality of Life),"#7, #19",,#3,,,,#6,,,,#1,,,,,,,#24,,#6,,#16,#16,,"#5, #7, #31",,,,,#6,"#6, #7",, \r\n,Oral Function (Remaining Teeth Composition/Denture Use/Chewing/Swallowing/Other),#14,,,#6,,,#6,,,,,,,,,,,#24,,#6,,,,#6,#31,,,#6,,#6,"#6, #7", \r\n,Oral Parafunction (Grinding/Clenching/Other),,,,,,,,,,,#7,,,,,,#7,,,,,,,,,,,,,,#7, \r\n,Diet and Nutrient Intake,"#2, #3, #4, #9, #10, #11, #12, #15, #17, #18, #20, #21, #27, #28, #36, #2D",#2D,,,"#2, #4",,#16,#3,#3,,,,,,#4,#4,,,,#9,,,,"#10, #15, #21",,,,,,,#9, \r\n,Infant Feeding,"#2, #10, #11, #15, #17, #18, #19, #20, #21, #36",,,,"#2, #13",#2,,,,,,#4,,,,#18,,,,,,,,"#10, #15, #21",,,,,,,, \r\n,Oral Microbiota,"#8, #13, #19, #36",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,, \r\n,Salivary pH,#8,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,, \r\n,Parental Health and Habits,"#2, #7, #8, #10, #11, #12, #15, #18, #19, #20, #32, #36",#6D,,,"#2, #13",,,#7,,,"#1, #10",,#10,,,"#10, #18",,,,"#7, #10",,,,"#10, #15","#7, #30",,,,,,#7, \r\n,Perception of Personal General Health and Needs ,#19,,,,,,#6,,,,,,,,,,,#24,,#6,,,,,,,,#6,,#6,#6, \r\n,Medical Conditions/Treatments/Presentations: Childhood Infection and Antibiotics,"#2, #18",,,,#2,,,,,,,,,,,"#4, #7, #18",,,,,,,,,,,,,,,, \r\n,Medical Conditions/Treatments/Presentations: Diabetes and Metabolic Disorders,,,,,,,,#14,,,,,,,,,,,,,,#16,,,,,,,,,, \r\n,"Medical Conditions/Treatments/Presentations: Premature Birth, Birth Weight, and other Peri-birth issues","#8, #11, #18, #19, #20, #29, #32",,,,#4,#2,,#29,,#4,#29,"#4, #26",,,#4,"#4, #18, #29",,,,,,,,,#30,,,,,,#29, \r\n,Medical Conditions/Treatments/Presentations: Intelligence and Cognitive Status,#7,#1D,,,,,,#7,,,,,,,,,,,,#7,,,,,#31,,,,,#7,#7, \r\n,Medical Conditions/Treatments/Presentations: Disability,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"#10, #37",, \r\n,Medical Conditions/Treatments/Presentations: Psychological Health and Personality Traits,#7,,,,,,,#7,,,#7,,,,,,#7,,,,,,#16,,"#7, #31",,,,,,#7,#7 \r\n,Medical Conditions/Treatments/Presentations: Other,"#7, #12, #14, #18, #2D","#2D, #6D, #8D",,,#33,,#6,#14,#33,,,#26,,"#7, #14",#4,"#7, #18",,#24,#10D,#6,,#16,,#6,"#31, #33",#15,,#6,,#6,"#6, #15", \r\n,Tooth Eruption,#13,,,,#4,#2,,,,,,,,,,,,,,,,,,,,,,,,,, \r\n,Tooth Exfoliation,,,,,,,,,,,,,,,,#7,,,,,,,,,,,,,,,, \r\n,Dental Anxiety,"#3, #7",,,,,,,,,,,,,,,,,,,#7,,,,,,,,,,#7,#7, \r\n,Genetics,#4,,,,#4,,,#7,,#4,,#4,,,#4,"#4, #18",,,,,,,,,,,,,,,, \r\n,Fluoride Sources,"#5, #7, #10, #12, #17, #20, #27, #28, #36, #2D",#2D,,,,,,,,,,,,,,"#7, #25",,,,#7,,,,,#30,,,,,,, \r\n,Radiographic Position of Third Molars,,,,,,,,,,,,,,,,,,,,,#7,,,,,,,,,,, \r\n,Amalgam Exposure,,,,,,,,,,,,,,,,,,,,,,,,,#3D,,,,,,,`;
+<script>
+    // Raw data from the "Figure 8 Data.docx" document
+    const rawData = `Outcome,Number of Study IDs,Study IDs
+"Dental/Oral Condition: Dental Caries/Tooth Loss",28,"#1, #2, #3, #4, #5, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #27, #28, #29, #30, #32, #36, #2D, #5D"
+"Dental Hospitalisation (diagnoses and treatment)",5,"#1D, #2D, #5D, #6D, #8D"
+"Medical Conditions/Treatments/Presentations: Psychological and Social Health",3,"#1, #3, #11"
+"Medical Conditions/Treatments/Presentations: Cognitive Health",1,#6
+"Oral and Pharyngeal Microbiota",5,"#2, #3, #4, #13, #33"
+"Salivary Immunoglobulin",1,#2
+"Oral Function (Remaining Teeth Composition/Denture Use/Chewing/Swallowing)",2,"#6, #16"
+"Dental/Oral Condition: Periodontal Disease",5,"#3, #6, #7, #14, #29"
+"non-specific oral health",2,"#3, #33"
+"Tooth Size and Shape",1,#4
+"Orthodontic need, treatment and success (including occlusal relations)",5,"#1, #7, #10, #29, #34"
+"Tooth Eruption",2,"#4, #26"
+"Dental/Oral Condition: Dental Trauma",1,#10
+"Dental/Oral Condition: Dry Mouth",2,"#7, #14"
+"Dental/Oral Condition: Dental Wear",1,#4
+"Dental/Oral Condition: Developmental Dental Defects",7,"#4, #7, #10, #17, #18, #25, #29"
+"Dental/Oral Condition: Temporomandibular joint Disease (TMD)",1,#7
+"Dental/Oral Condition: Oral Human Papillomavirus (HPV)",1,#24
+"Dental/Oral Condition: Oral Cancer and Epithelial Dysplasia",3,"#7D, #9D, #10D"
+"Oral Hygiene, Behaviours and Beliefs",6,"#6, #7, #9, #10, #15, #30"
+"Third Molar Status and Outcome",1,#7
+"Medical Conditions/Treatments/Presentations: Heart conditions",3,"#7, #16, #4D"
+"Medical Conditions/Treatments/Presentations: Diabetes and Metabolic Disorders",2,"#7, #16"
+"Medical Conditions/Treatments/Presentations: Obesity and Weight Loss",4,"#6, #10, #15, #21"
+"Medical Conditions/Treatments/Presentations: Other",10,"#5, #7, #14, #30, #31, #33, #35, #3D, #7D, #9D"
+"Perception of Personal General Health and Needs",1,#15
+"Substance Use (Including Smoking and Alcohol)",1,#7
+"Diet and Nutrient Intake",1,#6
+"Infant Feeding",1,#23
+"Use of Dental Service",5,"#5, #6, #7, #10, #37"
+"Perception of Personal Oral Health and Needs (Including Oral Health Quality of Life)",7,"#6, #7, #9, #15, #25, #29, #34"
+"Dental Anxiety",1,#7`;
 
-        /**
-         * Cleans a cell string by trimming whitespace and removing surrounding quotes.
-         */
-        function cleanCell(text) {
-            if (typeof text !== 'string') return "";
-            let cleaned = text.trim();
-            if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-                cleaned = cleaned.substring(1, cleaned.length - 1);
-            }
-            return cleaned.trim();
-        }
+    // Custom order from the "Outcome Order.docx" file
+    const customOrder = `Left to Right:
+Dental/Oral Condition: Dental Caries/Tooth Loss
+Dental/Oral Condition: Periodontal Disease
+Dental/Oral Condition: Developmental Dental Defects
+Dental/Oral Condition: Dental Trauma
+Dental/Oral Condition: Dry Mouth
+Dental/Oral Condition: Dental Wear
+Dental/Oral Condition: Temporomandibular joint Disease (TMD)
+Dental/Oral Condition: Oral Cancer and Epithelial Dysplasia
+Dental/Oral Condition: Oral Human Papillomavirus (HPV)
+Dental Hospitalisation (diagnoses and treatment)
+Orthodontic need, treatment and success (including occlusal relations)
+Oral Function (Remaining Teeth Composition/Denture Use/Chewing/Swallowing)
+Tooth Eruption
+Tooth Size and Shape
+Third Molar Status and Outcome
+Oral and Pharyngeal Microbiota
+Salivary Immunoglobulin
+Perception of Personal Oral Health and Needs (Including Oral Health Quality of Life)
+Dental Anxiety
+Oral Hygiene, Behaviours and Beliefs
+Use of Dental Service
+non-specific oral health
+Medical Conditions/Treatments/Presentations: Heart conditions
+Medical Conditions/Treatments/Presentations: Diabetes and Metabolic Disorders
+Medical Conditions/Treatments/Presentations: Obesity and Weight Loss
+Medical Conditions/Treatments/Presentations: Psychological and Social Health
+Medical Conditions/Treatments/Presentations: Cognitive Health
+Medical Conditions/Treatments/Presentations: Other
+Perception of Personal General Health and Needs
+Diet and Nutrient Intake
+Infant Feeding
+Substance Use (Including Smoking and Alcohol)`.split('\n').slice(1).map(s => s.trim());
 
-        /**
-         * Parses a single line of CSV text into an array of strings (cells).
-         */
-        function parseCsvLineToArray(lineString) {
-            const cells = [];
-            let currentCell = '';
-            let inQuotes = false;
-            for (let i = 0; i < lineString.length; i++) {
-                const char = lineString[i];
-                if (char === '"') {
-                    if (inQuotes && i + 1 < lineString.length && lineString[i+1] === '"') {
-                        currentCell += '"';
-                        i++; 
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    cells.push(cleanCell(currentCell));
-                    currentCell = '';
-                } else {
-                    currentCell += char;
-                }
-            }
-            cells.push(cleanCell(currentCell));
-            return cells;
-        }
-
-        /**
-         * Counts the number of valid study identifiers in a pre-cleaned study string.
-         */
-        function countStudies(alreadyCleanedStudyString) {
-            if (typeof alreadyCleanedStudyString !== 'string' || !alreadyCleanedStudyString) {
-                return 0;
-            }
-            const parts = alreadyCleanedStudyString.split(',')
-                .map(s => s.trim())
-                .filter(s => s.startsWith('#') && s.length > 1);
-            return parts.length;
-        }
-
-        // --- PARSING LOGIC ---
-        const lines = rawDataFromDocx.split(/\r\n|\r|\n/).filter(line => line.trim() !== "");
-        
-        let parsedRowCategories = [];
-        let parsedColumnCategories = [];
-        let parsedStudyCounts = []; 
-        let parsedStudyIdStrings = []; 
-
-        if (lines.length > 2) {
-            parsedColumnCategories = parseCsvLineToArray(lines[1]).slice(1);
-            for (let i = 2; i < lines.length; i++) {
-                const dataRowCells = parseCsvLineToArray(lines[i]);
-                if (dataRowCells.length > 1) {
-                    const rowCategoryName = dataRowCells[1]; 
-                    parsedRowCategories.push(rowCategoryName);
-                    let countsForRow = [];
-                    let idsForRow = [];
-                    for (let j = 0; j < parsedColumnCategories.length; j++) {
-                        const dataCellIndex = j + 2; 
-                        const cellValue = (dataCellIndex < dataRowCells.length) ? dataRowCells[dataCellIndex] : "";
-                        countsForRow.push(countStudies(cellValue));
-                        idsForRow.push(cellValue);
-                    }
-                    parsedStudyCounts.push(countsForRow);
-                    parsedStudyIdStrings.push(idsForRow);
-                }
-            }
-        } else {
-            console.error("Raw data does not have the expected structure. Check 'rawDataFromDocx'.");
-        }
-        
-        // --- INITIAL EVIDENCE DATA STRUCTURE ---
-        let evidenceData = { 
-            rowCategories: parsedRowCategories,
-            columnCategories: parsedColumnCategories, 
-            studyCounts: parsedStudyCounts,           
-            studyIdStrings: parsedStudyIdStrings,     
-            circleColor: "#3b82f6", 
-            maxCircleRadius: 12,    
-            minCircleRadius: 2    
+    // Parse the original data
+    const data = d3.csvParse(rawData, (d) => {
+        return {
+            outcome: d['Outcome'].trim(),
+            count: +d['Number of Study IDs'],
+            studyIds: d['Study IDs']
         };
+    });
 
-        /**
-         * Calculates total unique studies and unique study IDs for each column.
-         */
-        function calculateColumnSummaries(data) {
-            const summaries = [];
-            if (!data.columnCategories || data.columnCategories.length === 0) {
-                return summaries;
-            }
-            for (let j = 0; j < data.columnCategories.length; j++) {
-                const uniqueIdsInColumn = new Set(); 
-                for (let i = 0; i < data.rowCategories.length; i++) {
-                    const idString = data.studyIdStrings[i] && data.studyIdStrings[i][j];
-                    if (idString) {
-                        idString.split(',')
-                            .map(s => s.trim())
-                            .filter(s => s.startsWith('#') && s.length > 1) 
-                            .forEach(id => uniqueIdsInColumn.add(id)); 
-                    }
-                }
-                summaries.push({
-                    totalStudies: uniqueIdsInColumn.size, 
-                    uniqueStudyIds: Array.from(uniqueIdsInColumn).sort() 
-                });
-            }
-            return summaries;
-        }
+    // Create a map of the data for easy lookup
+    const dataMap = new Map(data.map(d => [d.outcome, d]));
 
-        /**
-         * Calculates total unique studies and unique study IDs for each row.
-         */
-        function calculateRowSummaries(data) {
-            const summaries = [];
-            if (!data.rowCategories || data.rowCategories.length === 0) {
-                return summaries;
-            }
-            for (let i = 0; i < data.rowCategories.length; i++) {
-                const uniqueIdsInRow = new Set();
-                if (data.studyIdStrings[i]) { 
-                    for (let j = 0; j < data.columnCategories.length; j++) {
-                        const idString = data.studyIdStrings[i][j];
-                        if (idString) {
-                            idString.split(',')
-                                .map(s => s.trim())
-                                .filter(s => s.startsWith('#') && s.length > 1)
-                                .forEach(id => uniqueIdsInRow.add(id));
-                        }
-                    }
-                }
-                summaries.push({
-                    totalStudies: uniqueIdsInRow.size,
-                    uniqueStudyIds: Array.from(uniqueIdsInRow).sort()
-                });
-            }
-            return summaries;
-        }
+    // Create the sorted data array based on the custom order
+    const sortedData = customOrder.map(outcome => dataMap.get(outcome)).filter(d => d);
 
-        /**
-         * Generates and renders the evidence gap map table.
-         */
-        function createEvidenceGapMap(data, containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) {
-                console.error("Container element not found:", containerId);
-                return;
-            }
+    // Chart dimensions
+    const width = 500;
+    const height = 500;
+    const margin = 40;
+    const radius = Math.min(width, height) / 2 - margin;
 
-            if (!data.rowCategories || !data.columnCategories || !data.studyCounts || !data.studyIdStrings ||
-                data.rowCategories.length === 0 || data.columnCategories.length === 0 ||
-                data.rowCategories.length !== data.studyCounts.length ||
-                data.rowCategories.length !== data.studyIdStrings.length ||
-                (data.studyCounts.length > 0 && data.studyCounts.some(row => !Array.isArray(row) || row.length !== data.columnCategories.length)) ||
-                (data.studyIdStrings.length > 0 && data.studyIdStrings.some(row => !Array.isArray(row) || row.length !== data.columnCategories.length))) {
-                container.innerHTML = '<p class="text-red-500 text-center">Error: Data structure is incorrect or incomplete. Check console.</p>';
-                console.error("Data structure mismatch or empty data:", data);
-                return;
-            }
+    // Create SVG container
+    const svg = d3.select("#chart")
+        .append("svg")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("preserveAspectRatio", "xMidYMid meet")
+        .append("g")
+        .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-            const columnSummaries = calculateColumnSummaries(data); 
-            const rowSummaries = calculateRowSummaries(data); 
+    // Color scale
+    const color = d3.scaleOrdinal(d3.schemePaired);
 
-            let maxStudies = 0;
-            data.studyCounts.forEach(row => {
-                row.forEach(count => {
-                    if (typeof count === 'number' && count > maxStudies) {
-                        maxStudies = count;
-                    }
-                });
-            });
-            if (maxStudies === 0) maxStudies = 1; 
+    // Pie generator
+    const pie = d3.pie()
+        .value(d => d.count)
+        .sort(null); // Data is pre-sorted
 
-            const table = document.createElement('table');
-            table.className = 'min-w-full divide-y divide-gray-200';
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            
-            const thEmpty = document.createElement('th');
-            thEmpty.scope = 'col';
-            headerRow.appendChild(thEmpty);
+    const data_ready = pie(sortedData); // Use the sorted data
 
-            data.columnCategories.forEach((colCategory, colIndex) => {
-                const th = document.createElement('th');
-                th.scope = 'col';
-                
-                const headerTextSpan = document.createElement('span');
-                headerTextSpan.textContent = colCategory;
-                th.appendChild(headerTextSpan);
+    // Arc generator
+    const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
 
-                const colSummary = columnSummaries[colIndex];
-                if (colSummary) {
-                    const tooltip = document.createElement('span');
-                    tooltip.className = 'tooltip'; 
-                    const countText = `<strong>${colSummary.totalStudies} unique stud${colSummary.totalStudies === 1 ? 'y' : 'ies'} (Column Total)</strong>`;
-                    const idsText = colSummary.uniqueStudyIds.length > 0 ? colSummary.uniqueStudyIds.join('<br>') : 'No unique IDs in this column';
-                    tooltip.innerHTML = `${countText}${idsText}`;
-                    th.appendChild(tooltip); 
-                }
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
+    // Tooltip
+    const tooltip = d3.select(".tooltip");
 
-            const tbody = document.createElement('tbody');
-            data.rowCategories.forEach((rowCategory, rowIndex) => {
-                const tr = document.createElement('tr');
-                const thRowHeader = document.createElement('th');
-                thRowHeader.scope = 'row';
-                thRowHeader.className = 'row-header';
+    // Build the pie chart
+    svg.selectAll('path')
+        .data(data_ready)
+        .join('path')
+        .attr('d', arc)
+        .attr('fill', d => color(d.data.outcome))
+        .attr("stroke", "white")
+        .style("stroke-width", "2px")
+        .style("opacity", 0.8)
+        .on("mouseover", function(event, d) {
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .style("opacity", 1)
+              .attr('transform', 'scale(1.05)');
 
-                const rowHeaderTextSpan = document.createElement('span');
-                rowHeaderTextSpan.textContent = rowCategory;
-                thRowHeader.appendChild(rowHeaderTextSpan);
+            tooltip.transition().duration(200).style("opacity", .9);
+            tooltip.html(`<strong>${d.data.outcome}</strong>Number of Study IDs: ${d.data.count}<br>Study IDs: ${d.data.studyIds}`)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .style("opacity", 0.8)
+              .attr('transform', 'scale(1)');
 
-                const rowSummary = rowSummaries[rowIndex]; // Summaries are based on the new row order
-                if(rowSummary){
-                    const tooltip = document.createElement('span');
-                    tooltip.className = 'tooltip';
-                    const countText = `<strong>${rowSummary.totalStudies} unique stud${rowSummary.totalStudies === 1 ? 'y' : 'ies'} (Row Total)</strong>`;
-                    const idsText = rowSummary.uniqueStudyIds.length > 0 ? rowSummary.uniqueStudyIds.join('<br>') : 'No unique IDs in this row';
-                    tooltip.innerHTML = `${countText}${idsText}`;
-                    thRowHeader.appendChild(tooltip);
-                }
-                tr.appendChild(thRowHeader);
-
-                data.columnCategories.forEach((_, colIndex) => {
-                    const td = document.createElement('td');
-                    const studyCount = data.studyCounts[rowIndex][colIndex]; 
-                    const studyIdsString = data.studyIdStrings[rowIndex][colIndex]; 
-                    
-                    const cellContentDiv = document.createElement('div');
-                    cellContentDiv.className = 'circle-cell'; 
-
-                    const tooltip = document.createElement('span');
-                    tooltip.className = 'tooltip';
-
-                    if (typeof studyCount === 'number' && studyCount > 0) {
-                        let radius = data.minCircleRadius;
-                        if (maxStudies > 0) { 
-                           radius = (studyCount / maxStudies) * (data.maxCircleRadius - data.minCircleRadius) + data.minCircleRadius;
-                        }
-                        radius = Math.max(data.minCircleRadius, Math.min(radius, data.maxCircleRadius)); 
-
-                        const svgNS = "http://www.w3.org/2000/svg";
-                        const svg = document.createElementNS(svgNS, "svg");
-                        const svgSize = data.maxCircleRadius * 2 + 6; 
-                        svg.setAttribute("width", String(svgSize));
-                        svg.setAttribute("height", String(svgSize));
-                        svg.setAttribute("viewBox", `0 0 ${svgSize} ${svgSize}`);
-                        
-                        const circleElement = document.createElementNS(svgNS, "circle");
-                        circleElement.setAttribute("cx", String(svgSize / 2)); 
-                        circleElement.setAttribute("cy", String(svgSize / 2)); 
-                        circleElement.setAttribute("r", String(radius));
-                        circleElement.setAttribute("fill", data.circleColor);
-                        svg.appendChild(circleElement);
-                        cellContentDiv.appendChild(svg);
-                        
-                        const countText = `<strong>${studyCount} stud${studyCount === 1 ? 'y' : 'ies'}</strong>`;
-                        const idsText = studyIdsString ? studyIdsString.split(',')
-                                                                .map(s => s.trim())
-                                                                .filter(s => s) 
-                                                                .join('<br>') 
-                                                      : 'IDs not available';
-                        tooltip.innerHTML = `${countText}${idsText}`;
-
-                    } else {
-                        const noStudiesText = document.createElement('span');
-                        noStudiesText.textContent = (typeof studyCount === 'number' && studyCount === 0) ? "0" : "-";
-                        noStudiesText.className = "text-gray-400 text-xs"; 
-                        cellContentDiv.appendChild(noStudiesText);
-                        tooltip.textContent = `0 studies`; 
-                    }
-                    cellContentDiv.appendChild(tooltip); 
-                    td.appendChild(cellContentDiv);
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-
-            container.innerHTML = ''; 
-            container.appendChild(table);
-        }
-
-        // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const mainTitleElement = document.querySelector('h1.main-title');
-            if (mainTitleElement) {
-                document.title = mainTitleElement.textContent.trim();
-            }
-
-            // --- COLUMN REORDERING LOGIC ---
-            const desiredColumnOrder = [
-                "Dental/Oral Condition: Dental Caries/Tooth Loss",
-                "Dental/Oral Condition: Periodontal Disease",
-                "Dental/Oral Condition: Developmental Dental Defects",
-                "Dental/Oral Condition: Dental Trauma",
-                "Dental/Oral Condition: Dry Mouth",
-                "Dental/Oral Condition: Dental Wear",
-                "Dental/Oral Condition: Temporomandibular joint Disease (TMD)",
-                "Dental/Oral Condition: Oral Cancer and Epithelial Dysplasia",
-                "Dental/Oral Condition: Oral Human Papillomavirus (HPV)",
-                "Dental Hospitalisation (diagnoses and treatment)",
-                "Orthodontic need, treatment and success (including occlusal relations)",
-                "Oral Function (Remaining Teeth Composition/Denture Use/Chewing/Swallowing)",
-                "Tooth Eruption",
-                "Tooth Size and Shape",
-                "Third Molar Status and Outcome",
-                "Oral and Pharyngeal Microbiota",
-                "Salivary Immunoglobulin",
-                "Perception of Personal Oral Health and Needs (Including Oral Health Quality of Life)",
-                "Dental Anxiety",
-                "Oral Hygiene, Behaviours and Beliefs",
-                "Use of Dental Service",
-                "non-specific oral health",
-                "Medical Conditions/Treatments/Presentations: Heart conditions",
-                "Medical Conditions/Treatments/Presentations: Diabetes and Metabolic Disorders",
-                "Medical Conditions/Treatments/Presentations: Obesity and Weight Loss",
-                "Medical Conditions/Treatments/Presentations: Psychological and Social Health",
-                "Medical Conditions/Treatments/Presentations: Cognitive Health",
-                "Medical Conditions/Treatments/Presentations: Other",
-                "Perception of Personal General Health and Needs",
-                "Diet and Nutrient Intake",
-                "Infant Feeding",
-                "Substance Use (Including Smoking and Alcohol)"
-            ];
-
-            const originalColumnCategories = evidenceData.columnCategories.slice(); 
-            const reorderedColumnCategories = [];
-            const columnIndexMapping = []; 
-
-            desiredColumnOrder.forEach(colName => {
-                const originalIndex = originalColumnCategories.indexOf(colName);
-                if (originalIndex !== -1) {
-                    reorderedColumnCategories.push(colName);
-                    columnIndexMapping.push(originalIndex);
-                } else {
-                    console.warn(`Column "${colName}" from desired order not found in original data and will be omitted.`);
-                }
-            });
-
-            evidenceData.columnCategories = reorderedColumnCategories;
-            evidenceData.studyCounts = evidenceData.studyCounts.map(originalRow => 
-                columnIndexMapping.map(originalIndex => originalRow[originalIndex])
-            );
-            evidenceData.studyIdStrings = evidenceData.studyIdStrings.map(originalRow => 
-                columnIndexMapping.map(originalIndex => originalRow[originalIndex])
-            );
-            // --- COLUMN REORDERING LOGIC END ---
-
-            // --- ROW REORDERING LOGIC ---
-            const desiredRowOrder = [
-                "Sociodemographic/Economic/Cultural Factors (Including Access and Use of Dental Services)",
-                "Substance Use (Including Smoking and Alcohol)",
-                "Oral Hygiene, Behaviours and Beliefs",
-                "Oral and Dental Condition/Treatment: Dental Caries/Extraction/ Restoration",
-                "Oral and Dental Condition/Treatment: Developmental Dental Defects",
-                "Oral and Dental Condition/Treatment: Periodontal Disease",
-                "Oral and Dental Condition/Treatment: Dry Mouth",
-                "Oral and Dental Condition/Treatment: Dental Trauma",
-                "Oral and Dental Condition/Treatment: Orthodontic Treatment, Need, and Occlusal Relations",
-                "Oral and Dental Condition/Treatment: Temporomandibular joint Disease (TMD)",
-                "Oral and Dental Condition/Treatment: Oral Cancer",
-                "Oral and Dental Condition/Treatment: Oral Lichen Planus and Lichenoid Lesions (OLP/OLL)",
-                "Oral and Dental Condition/Treatment: Other",
-                "Perception of Personal Oral Health and Needs (Including Oral Health Quality of Life)",
-                "Oral Function (Remaining Teeth Composition/Denture Use/Chewing/Swallowing/Other)",
-                "Oral Parafunction (Grinding/Clenching/Other)",
-                "Oral Microbiota",
-                "Salivary pH",
-                "Tooth Eruption",
-                "Tooth Exfoliation",
-                "Fluoride Sources",
-                "Radiographic Position of Third Molars",
-                "Amalgam Exposure",
-                "Dental Anxiety",
-                "Medical Conditions/Treatments/Presentations: Childhood Infection and Antibiotics",
-                "Medical Conditions/Treatments/Presentations: Diabetes and Metabolic Disorders",
-                "Medical Conditions/Treatments/Presentations: Premature Birth, Birth Weight, and other Peri-birth issues",
-                "Medical Conditions/Treatments/Presentations: Psychological Health and Personality Traits",
-                "Medical Conditions/Treatments/Presentations: Intelligence and Cognitive Status",
-                "Medical Conditions/Treatments/Presentations: Disability",
-                "Medical Conditions/Treatments/Presentations: Other",
-                "Perception of Personal General Health and Needs",
-                "Anthropometric Measurements",
-                "Diet and Nutrient Intake",
-                "Infant Feeding",
-                "Physical Activity",
-                "Parental Health and Habits",
-                "Genetics"
-            ];
-
-            const originalRowCategories = evidenceData.rowCategories.slice();
-            const reorderedRowCategories = [];
-            const rowIndexMapping = []; // Stores original indices of rows as they appear in the desired order
-
-            desiredRowOrder.forEach(rowName => {
-                const originalIndex = originalRowCategories.indexOf(rowName);
-                if (originalIndex !== -1) {
-                    reorderedRowCategories.push(rowName);
-                    rowIndexMapping.push(originalIndex);
-                } else {
-                    console.warn(`Row "${rowName}" from desired order not found in original data and will be omitted.`);
-                }
-            });
-            
-            // Reorder rowCategories, studyCounts, and studyIdStrings based on rowIndexMapping
-            evidenceData.rowCategories = reorderedRowCategories;
-            evidenceData.studyCounts = rowIndexMapping.map(originalIndex => evidenceData.studyCounts[originalIndex]);
-            evidenceData.studyIdStrings = rowIndexMapping.map(originalIndex => evidenceData.studyIdStrings[originalIndex]);
-            // --- ROW REORDERING LOGIC END ---
-
-
-            if (evidenceData.rowCategories.length === 0 && evidenceData.columnCategories.length === 0 && evidenceData.studyCounts.length === 0) {
-                 console.warn("Evidence data is empty after parsing. Check 'rawDataFromDocx' and parsing logic.");
-                 const container = document.getElementById('evidenceMapContainer');
-                 if(container) {
-                    container.innerHTML = '<p class="text-orange-500 text-center p-4">Warning: No data to display. Check console.</p>';
-                 }
-            }
-            createEvidenceGapMap(evidenceData, 'evidenceMapContainer');
+            tooltip.transition().duration(500).style("opacity", 0);
         });
-    </script>
+
+</script>
 
 </body>
 </html>
